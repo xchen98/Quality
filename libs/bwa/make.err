@@ -1,0 +1,59 @@
+bwa.c:147:18: warning: absolute value function 'abs' given an argument of type 'long long' but has parameter of type 'int' which may cause truncation of value [-Wabsolute-value]
+                w = (max_gap + abs(rlen - l_query) + 1) >> 1;
+                               ^
+bwa.c:147:18: note: use function 'llabs' instead
+                w = (max_gap + abs(rlen - l_query) + 1) >> 1;
+                               ^~~
+                               llabs
+bwa.c:149:11: warning: absolute value function 'abs' given an argument of type 'long long' but has parameter of type 'int' which may cause truncation of value [-Wabsolute-value]
+                min_w = abs(rlen - l_query) + 3;
+                        ^
+bwa.c:149:11: note: use function 'llabs' instead
+                min_w = abs(rlen - l_query) + 3;
+                        ^~~
+                        llabs
+2 warnings generated.
+bwt_gen.c:878:10: warning: variable 'oldInverseSa0RelativeRank' set but not used [-Wunused-but-set-variable]
+        bgint_t oldInverseSa0RelativeRank = 0;
+                ^
+bwt_gen.c:952:15: warning: variable 'bitsInWordMinusBitPerChar' set but not used [-Wunused-but-set-variable]
+        unsigned int bitsInWordMinusBitPerChar;
+                     ^
+2 warnings generated.
+bwase.c:182:57: warning: absolute value function 'abs' given an argument of type 'long long' but has parameter of type 'int' which may cause truncation of value [-Wabsolute-value]
+        ksw_global(len, seq, rlen, rseq, 5, mat, 5, 1, SW_BW > abs(rlen - len) * 1.5? SW_BW : abs(rlen - len) * 1.5, n_cigar, &cigar32);
+                                                               ^
+bwase.c:182:57: note: use function 'llabs' instead
+        ksw_global(len, seq, rlen, rseq, 5, mat, 5, 1, SW_BW > abs(rlen - len) * 1.5? SW_BW : abs(rlen - len) * 1.5, n_cigar, &cigar32);
+                                                               ^~~
+                                                               llabs
+bwase.c:182:88: warning: absolute value function 'abs' given an argument of type 'long long' but has parameter of type 'int' which may cause truncation of value [-Wabsolute-value]
+        ksw_global(len, seq, rlen, rseq, 5, mat, 5, 1, SW_BW > abs(rlen - len) * 1.5? SW_BW : abs(rlen - len) * 1.5, n_cigar, &cigar32);
+                                                                                              ^
+bwase.c:182:88: note: use function 'llabs' instead
+        ksw_global(len, seq, rlen, rseq, 5, mat, 5, 1, SW_BW > abs(rlen - len) * 1.5? SW_BW : abs(rlen - len) * 1.5, n_cigar, &cigar32);
+                                                                                              ^~~
+                                                                                              llabs
+2 warnings generated.
+kopen.c:295:10: warning: 'vfork' is deprecated: Use posix_spawn or fork [-Wdeprecated-declarations]
+                        pid = vfork();
+                              ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/unistd.h:604:1: note: 'vfork' has been explicitly marked deprecated here
+__deprecated_msg("Use posix_spawn or fork")
+^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/cdefs.h:208:48: note: expanded from macro '__deprecated_msg'
+        #define __deprecated_msg(_msg) __attribute__((__deprecated__(_msg)))
+                                                      ^
+1 warning generated.
+bwtsw2_core.c:453:45: warning: variable 'n_tot' set but not used [-Wunused-but-set-variable]
+        int i, j, score_mat[16], *heap, heap_size, n_tot = 0;
+                                                   ^
+1 warning generated.
+bwtsw2_pair.c:239:13: warning: using floating point absolute value function 'fabs' when argument is of integer type [-Wabsolute-value]
+                                        diff = fabs(G[0] - G[1]) / (opt->a + opt->b) / ((hits[i]->hits[0].len + a[1].len + hits[i+1]->hits[0].len + a[0].len) / 2.);
+                                               ^
+bwtsw2_pair.c:239:13: note: use function 'abs' instead
+                                        diff = fabs(G[0] - G[1]) / (opt->a + opt->b) / ((hits[i]->hits[0].len + a[1].len + hits[i+1]->hits[0].len + a[0].len) / 2.);
+                                               ^~~~
+                                               abs
+1 warning generated.
