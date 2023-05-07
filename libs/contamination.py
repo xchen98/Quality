@@ -17,15 +17,15 @@ class Contamination:
 
     def Pipline(self, type, query, database):
         global blastn, command
-        if type == "vector" or "adaptor":
-            command = ['blastn', '-query', query, '-db', database, '-reward 1 -penalty -5 -gapopen 3',
-                       '-gapextend 3 -dust yes -soft_masking true -evalue 700 -searchsp 1750000000000 -outfmt',
-                       '"7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore"',
-                       "| awk '$3>=94.0'"]
-        if type == "common_cont":
-            command = ['blastn', '-query', query, '-db', database, '-task megablast', '-word_size 28',
-                       '-evalue 1e-3', '-perc_identity 94', '-outfmt', '"7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore"']
 
+        if type == "rrna" or "common_cont":
+            command = ['blastn', '-query', query, '-db', database, '-task megablast',
+                       "-template_length 18 -template_type coding -window_size 120",
+                       "-word_size 12 -xdrop_gap 20 -no_greedy -best_hit_overhang 0.1",
+                       "-best_hit_score_edge 0.1 -dust yes -evalue 1e-5 -perc_identity 95",
+                       "-gapextend 2 -gapopen 4 -penalty -4",
+                       '-outfmt "7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore"',
+                       "| awk '$4>=100'"]
         blastn = call_subprocess(command, out=True, contam=True, mode=type)
         return blastn
 
@@ -109,14 +109,12 @@ class Contamination:
         return (all_cont)
 
     def run(self):
-        #vec = self.Pipline("vector", self.query, self.database + '/UniVecDB/UniVecDB')
-        adaptor = self.Pipline("adaptor", self.query, self.database + '/Adaptors/adaptors_for_screening_euks')
+
         common_cont = self.Pipline("common_cont", self.query, self.database + '/contam_in_euks/contam_in_euks')
         rrna = self.Pipline("rrna", self.query, self.database + '/rrna/rrna')
 
         all_contamination = [[], []]
-        if len(adaptor[0]) != 0:
-            all_contamination = self.merge_contamination(all_contamination, adaptor)
+
         if len(common_cont[0]) != 0:
             all_contamination = self.merge_contamination(all_contamination, common_cont)
         if len(rrna[0]) != 0:

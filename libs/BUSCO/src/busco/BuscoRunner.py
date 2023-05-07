@@ -178,7 +178,6 @@ class SingleRunner:
             )
 
         except BaseException:
-            print("444444444444444")
             exc_type, exc_value, exc_traceback = sys.exc_info()
             logger.critical(
                 "Unhandled exception occurred:\n{}\n".format(
