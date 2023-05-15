@@ -6,12 +6,13 @@ def scaffold(seq, trim_name, trim_area, output_path):
     scaffolds_l = []
     cleaned_scaffolds_l = []
     contigs_l = []
-    fragments = []
     trim = False
     index = None
     area = None
     n = 0
     seq_name = None
+    s = ""
+    sqs = []
     cleaned_file = output_path + '/cleaned_sequence.fna'
     cleaned_sequence = open(cleaned_file, "w")
     with open(seq) as file:
@@ -23,10 +24,11 @@ def scaffold(seq, trim_name, trim_area, output_path):
             if len(line) != 0:
                 if '>' in line:
                     scaffolds_l.append(scaffold_length)
+                    sqs.append(s)
                     cleaned_scaffolds_l.append(cleaned_scaffold_length)
                     contigs_l.append(contig)
-                    fragments.append(line.split(' ')[0][1:])
                     scaffold_length = 0
+                    s = ""
                     cleaned_scaffold_length = 0
                     contig = 0
                     name = line.replace(' ', '').split('>')[1]
@@ -44,8 +46,10 @@ def scaffold(seq, trim_name, trim_area, output_path):
                 else:
                     if trim == True:
                         o_scaffold_length = scaffold_length
+                        s = s + line
                         scaffold_length = scaffold_length + len(line)
-                        if area[0] < o_scaffold_length and area[1] <= scaffold_length and area[1] >= o_scaffold_length:
+                        if area[0] == 1: area[0] = 0
+                        if area[0] <= o_scaffold_length and area[1] <= scaffold_length and area[1] >= o_scaffold_length:
                             if len(trim_area[index]) > 1:
                                 last_end = area[1]
                                 trim_area[index] = trim_area[index][1:]
@@ -53,10 +57,12 @@ def scaffold(seq, trim_name, trim_area, output_path):
                                 n = n + 1
                                 new_name = '_'.join([seq_name, str(n)])
                                 cleaned_sequence.write(new_name + '\n')
-
-                            if area[0] < scaffold_length and area[1] <= scaffold_length:
-                                seq = line[o_scaffold_length - last_end - 1:o_scaffold_length - area[
-                                    0] - 1] + line[area[1] - scaffold_length:]
+                            if len(trim_area[index]) == 1 and area[0] < len(line) and area[1] <= scaffold_length:
+                                seq = line[0:area[0]] + line[area[1] - scaffold_length:]
+                                cleaned_scaffold_length = cleaned_scaffold_length + len(seq)
+                                cleaned_sequence.write(seq)
+                            elif area[0] < scaffold_length and area[1] <= scaffold_length:
+                                seq = line[o_scaffold_length - last_end - 1:o_scaffold_length - area[0] - 1] + line[area[1] - scaffold_length:]
                                 cleaned_scaffold_length = cleaned_scaffold_length + len(seq)
                                 if (area[0] - last_end - 1) + (scaffold_length - area[1]) < len(line):
                                     cleaned_sequence.write(seq)
@@ -88,10 +94,14 @@ def scaffold(seq, trim_name, trim_area, output_path):
                             seq = line[0:area[0] - o_scaffold_length - 1]
                             cleaned_sequence.write(seq + '\n')
                             cleaned_scaffold_length = cleaned_scaffold_length + len(seq)
-
+                        elif scaffold_length > area[1]:
+                            seq = line
+                            cleaned_sequence.write(seq + '\n')
+                            cleaned_scaffold_length = cleaned_scaffold_length + len(seq)
 
                     else:
                         scaffold_length = scaffold_length + len(line)
+                        s = s + line
                         cleaned_sequence.write(line + '\n')
                         cleaned_scaffold_length = scaffold_length
 
@@ -111,17 +121,20 @@ def scaffold(seq, trim_name, trim_area, output_path):
                         contig = contig + len(line)
 
         scaffolds_l.append(scaffold_length)
+        sqs.append(s)
         cleaned_scaffolds_l.append(cleaned_scaffold_length)
         contigs_l.append(contig)
 
         scaffolds_l = scaffolds_l[1:]
+        sqs = sqs[1:]
         cleaned_scaffolds_l = cleaned_scaffolds_l[1:]
         contigs_l = contigs_l[1:]
 
     file.close()
     cleaned_sequence.close()
 
-    return (scaffolds_l, cleaned_scaffolds_l, contigs_l, fragments)
+    return (scaffolds_l, cleaned_scaffolds_l, contigs_l, sqs)
+
 
 def find_X(list, X, Genome_size = None):
     if Genome_size == None:

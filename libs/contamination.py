@@ -62,7 +62,7 @@ class Contamination:
 
         return cont_area
 
-    def merge_contamination(self, cont_1, cont_2):
+    def merge_contamination(self, cont_1, cont_2, fragments_name):
         all_cont = []
         all_cont_name = []
         all_cont_area = []
@@ -82,42 +82,59 @@ class Contamination:
                 low_l = l1_l
                 large = cont_2
                 low = cont_1
+            index_l = [large[0].index(x) for x in low[0] if x in large[0]]
+            low_done = False
+            low_j = 0
             for i in range(l):
-                if i < low_l:
-                    if low[0][i] == large[0][i]:
-                        rc_areas = (low[1][i] + large[1][i])
+                if low_done == False:
+                    if i in index_l:
+                        rc_areas = (low[1][index_l.index(i)] + large[1][i])
                         if len(self.remove_duplicated(rc_areas)) != 0:
                             all_cont_area.append(self.remove_duplicated(rc_areas))
                             all_cont_name.append(large[0][i])
+                            low_j = low_j + 1
+
 
                     else:
-                        if len(self.remove_duplicated(low[1][i])) != 0:
-                            all_cont_name.append(low[0][i])
-                            all_cont_area.append(self.remove_duplicated(low[1][i]))
+                        if i < low_l and low[0][i] not in large[0][i:]:
+                            if len(self.remove_duplicated(low[1][i])) != 0:
+                                ind = fragments_name.index(low[0][i])
+                                all_cont_name.insert(ind, low[0][i])
+                                all_cont_area.insert(ind, (self.remove_duplicated(low[1][i])))
+                                low_j = low_j + 1
+                        elif i >= low_l and low_j <= low_l:
+                            if len(self.remove_duplicated(low[1][low_j])) != 0:
+                                ind = fragments_name.index(low[0][low_j])
+                                all_cont_name.insert(ind, (low[0][low_j]))
+                                all_cont_area.insert(ind, (self.remove_duplicated(low[1][low_j])))
+                                low_j = low_j + 1
+
                         if len(self.remove_duplicated(large[1][i])) != 0:
-                            all_cont_name.append(large[0][i])
-                            all_cont_area.append(self.remove_duplicated(large[1][i]))
+                            print(fragments_name, "???", large[0])
+                            ind = fragments_name.index(large[0][i])
+                            all_cont_name.insert(ind, (large[0][i]))
+                            all_cont_area.insert(ind, (self.remove_duplicated(large[1][i])))
+
+                    if set(low[0]) < set(all_cont_name): low_done = True
 
                 else:
                     if len(self.remove_duplicated(large[1][i])) != 0:
-                        all_cont_name.append(large[0][i])
-                        all_cont_area.append(self.remove_duplicated(large[1][i]))
+                        ind = fragments_name.index(large[0][i])
+                        all_cont_name.insert(ind, (large[0][i]))
+                        all_cont_area.insert(ind, (self.remove_duplicated(large[1][i])))
 
             all_cont.append(all_cont_name)
             all_cont.append(all_cont_area)
 
         return (all_cont)
 
-    def run(self):
-
+    def run(self, fragments_name):
         common_cont = self.Pipline("common_cont", self.query, self.database + '/contam_in_euks/contam_in_euks')
-        rrna = self.Pipline("rrna", self.query, self.database + '/rrna/rrna')
 
         all_contamination = [[], []]
 
         if len(common_cont[0]) != 0:
-            all_contamination = self.merge_contamination(all_contamination, common_cont)
-        if len(rrna[0]) != 0:
-            all_contamination = self.merge_contamination(all_contamination, rrna)
+            all_contamination = self.merge_contamination(all_contamination, common_cont, fragments_name)
 
         return all_contamination
+
