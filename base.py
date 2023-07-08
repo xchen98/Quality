@@ -10,7 +10,7 @@ from libs.alignment import get_protein_score, get_trans_score
 
 
 
-def make_table(assembly_name, statistics, output_path, fragments, completeness, contamination, coverage, transcriptom, proteome, score = None):
+def make_table(assembly_name, statistics, output_path, fragments, completeness, contamination, coverage, transcriptom, proteome):
     s_table = output_path + '/score_table.txt'
     score_table = open(s_table, 'w')
     score_table.write("Fundamental statistics of genome: " + assembly_name + '\n')
@@ -75,7 +75,7 @@ def completeness(complete, fragments):
 
     return(out)
 
-def run(assembly_name, output_path, assembly, lineage, bam, protein, transcriptome, reads=None, reference=None):
+def run(assembly_name, output_path, assembly, lineage, bam, protein, transcriptome):
 
     auto_l = True
     if lineage:

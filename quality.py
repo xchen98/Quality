@@ -22,12 +22,7 @@ def parser(args):
         metavar="GENOME ASSEMBLY",
         help="genome assembly"
     )
-    parser.add_argument(
-        "-ref",
-        type=str,
-        metavar="REFERENCE",
-        help="reference genome"
-    )
+
     parser.add_argument(
         "-reads",
         type=str,
@@ -117,20 +112,10 @@ def main(args):
             bam = call_samtools(output_path + '/' + accession + '.sam', output_path, accession)
         else:
             bam = None
-    #print(output_path)
-    fragments = call_subprocess(["grep '>'", assembly], out = True)
-    fragments = [x[1:].split('.')[0] + '.' + x[1:].split('.')[1][0] for x in fragments]
-    coverage_dir = call_bamtocov(bam, output_path)
-    coverage = [call_calculate_cov(x, coverage_dir) for x in fragments]
-    #print(coverage)
-    run(assembly_name, output_path, assembly, lineage, bam, protein, trans, None)
+
+    run(assembly_name, output_path, assembly, lineage, bam, protein, trans)
 
 
 if __name__ == '__main__':
     results = main(sys.argv[1:])
     exit(results)
-    #time_start = time.time()
-
-    #run_aligment("../Downloads/GCF_000001735.4_TAIR10.1_protein.faa", './seq_X', "./kalign")
-    #time_end = time.time()
-    #print('time:', time_end - time_start)
