@@ -187,8 +187,12 @@ class SingleRunner:
                 )
             )
             raise BatchFatalError(str(exc_value))
-        out = self.runner.out
-        out = [x.split('\n')[0].split('\t')[1:3] for x in out]
+        runner_out = self.runner.out
+        out = []
+        for x in runner_out:
+            out_i = x.split('\n')[0].split('\t')[0:5]
+            out_i.append(x.split('\n')[0].split('\t')[-2])
+            out.append(out_i)
         return out
 
     def compress_folders(self):

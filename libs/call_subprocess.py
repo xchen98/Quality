@@ -1,26 +1,26 @@
 import subprocess
 import os
+import pandas as pd
 import numpy as np
 
-def call_subprocess(command, out=False, string=None, contam=False, mode = None):
+def call_subprocess(command, out=False, string=None, contam=False, align = False):
     if out:
         pip = subprocess.run(' '.join(command), shell=True, stdout=subprocess.PIPE)
         std = pip.stdout
 
         if (string != None) & (contam == False):
-            std = str(std).replace('b','').replace(' ', '').split("'")[1].split('\\n')[:-1]
+            std = str(std)[1:].replace(' ', '').split("'")[1].split('\\n')[:-1]
             std = [x.split(string)[0] for x in std]
+        if align == True:
+
+            std = str(std)[1:].replace(' ', '').split("'")[1].split('\\n')
+            align = pd.DataFrame([x.split('\\t') for x in std if '#' not in x and len(x) != 0])
+            align.columns = ['queryacc.ver', 'subjectacc.ver', 'identity', 'alignment length', 'mismatches', 'gapopens',
+                         'q.start', 'q.end', 's.start', 's.end', 'evalue', 'bitscore']
+            return align
         elif contam == True:
             std = str(std)[1:].split('# BLAST processed')[0].replace(' ', '').split("'")[1].split('#Query:')[1:]
             name = [x.split('\\n')[0] for x in std if "0hitsfound" not in x]
-            #if mode == "vector":
-            #    hits = [x.split('BLASTN')[0].split('\\n')[3:-1] for x in std if "0hitsfound" not in x]
-            #    strong_hits = [[list(map(int, y.split('\\t')[8:10])) for y in x if np.floor(float(y.split('\\t')[-1]) / 2) >= 19] for x in hits]
-            #    weak_hits = [[list(map(int, y.split('\\t')[8:10])) for y in x if np.floor(float(y.split('\\t')[-1]) / 2) < 19] for x in hits]
-            #    for x in strong_hits:
-            #        x.sort(key = lambda x: (x.sort(), x[0], x[1]))
-            #
-            #    return (name, strong_hits, weak_hits)
             hits = [x.split('BLASTN')[0].split('\\n')[4:-1] for x in std if "0hitsfound" not in x]
             strong_hits = [[list(map(int, y.split('\\t')[8:10])) for y in x] for x in hits]
             for x in strong_hits:
@@ -29,9 +29,9 @@ def call_subprocess(command, out=False, string=None, contam=False, mode = None):
             return(name, strong_hits)
         else:
             if len(str(std).split('\\n')) > 1:
-                std = str(std).replace('b', '').replace(' ', '').split("'")[1].split('\\n')[:-1]
+                std = str(std)[1:].replace(' ', '').split("'")[1].split('\\n')[:-1]
             else:
-                std = str(std).replace('b', '').replace(' ', '').split("'")[1]
+                std = str(std)[1:].replace(' ', '').split("'")[1]
 
         return (std)
     else:
@@ -41,7 +41,7 @@ def call_subprocess(command, out=False, string=None, contam=False, mode = None):
 def call_bwa(assembly_path, reads_path, output_path, output_name):
     out = output_path + '/' + output_name + '.sam'
     command_index = [os.getcwd() + '/libs/bwa/bwa', 'index', assembly_path]
-    command_mem = [os.getcwd() + '/libs/bwa/bwa', 'mem', assembly_path, reads_path, '>', out]
+    command_mem = [os.getcwd() + '/libs/bwa/bwa', 'mem -t 8', assembly_path, reads_path, '>', out]
     call_subprocess(command_index)
     call_subprocess(command_mem)
     return (out)
@@ -58,7 +58,7 @@ def call_samtools(sam_file, output_path, output_name):
 
 def call_bamtocov(bam_file, output_path):
     out = output_path + '/' + 'coverage.bed'
-    command = ['bamtocov', bam_file, '>', out]
+    command = ['bamtocov -T 8', bam_file, '>', out]
     call_subprocess(command)
 
     return out
@@ -68,3 +68,31 @@ def call_calculate_cov(fragment, coverage_file_dir):
     command = ['grep', fragment, coverage_file_dir, "| awk '{x+=$4} END {printf (\"%.2f\",x/NR)}' "]
     coverage = call_subprocess(command, out=True)
     return coverage
+
+def call_makeblastdb(seq, type, output_dir):
+    command = ['makeblastdb', '-in', seq, '-dbtype', type, '-out', output_dir + '/' + str(type) + '/' + str(type), "-parse_seqids"]
+    call_subprocess(command)
+
+    return(output_dir + '/' + str(type) + '/' + str(type))
+
+
+def call_diamond(seq, protein, output_dir):
+    command = ['diamond makedb', '--in', protein, '-d', output_dir + '/nr', '>', output_dir + '/log.txt']
+    call_subprocess(command)
+
+    command = ['diamond blastx -d', output_dir + '/nr', '-q', seq, '-f 6 -o', output_dir + '/matches.m8', '>', output_dir + '/log.txt']
+    call_subprocess(command)
+
+def call_kalign(query, output_dir):
+    command = ['kalign', '-i', query, '-n 8', '-out', output_dir + '/out.msf']
+    call_subprocess(command)
+
+def call_hmmbuild(msf_names, output_dir):
+    for msf in msf_names:
+        command = ['hmmbuild', output_dir + '/hmm/' + msf + '.hmm', output_dir + '/msf/' + msf + '.msf', '> trash']
+        call_subprocess(command)
+
+def call_hmmsearch(protein, hmm_files, output_dir):
+    for hmm in hmm_files:
+        command = ['hmmsearch --tblout', output_dir + '/out/' + hmm + '.out', output_dir + '/hmm/' + hmm + '.hmm', protein, '> trash']
+        call_subprocess(command)

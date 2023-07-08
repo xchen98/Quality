@@ -2,6 +2,8 @@ import copy
 from libs.call_subprocess import call_subprocess
 
 
+
+
 def scaffold(seq, trim_name, trim_area, output_path):
     scaffolds_l = []
     cleaned_scaffolds_l = []
@@ -23,6 +25,7 @@ def scaffold(seq, trim_name, trim_area, output_path):
             line = line.strip()
             if len(line) != 0:
                 if '>' in line:
+                    print(line)
                     scaffolds_l.append(scaffold_length)
                     sqs.append(s)
                     cleaned_scaffolds_l.append(cleaned_scaffold_length)
@@ -32,13 +35,17 @@ def scaffold(seq, trim_name, trim_area, output_path):
                     cleaned_scaffold_length = 0
                     contig = 0
                     name = line.replace(' ', '').split('>')[1]
-                    if name in trim_name:
+                    if name in trim_name :
                         trim = True
                         index = trim_name.index(name)
-                        area = trim_area[index][0]
-                        n = 0
-                        seq_name = line
+                        if len(trim_area[index]) != 0:
+                            area = trim_area[index][0]
+                            n = 0
+                            seq_name = line
+                        else:
+                            trim = False
                         cleaned_sequence.write('_'.join([line, str(n)]) + '\n')
+
                     else:
                         trim = False
                         cleaned_sequence.write(line + '\n')
@@ -135,7 +142,6 @@ def scaffold(seq, trim_name, trim_area, output_path):
 
     return (scaffolds_l, cleaned_scaffolds_l, contigs_l, sqs)
 
-
 def find_X(list, X, Genome_size = None):
     if Genome_size == None:
         threshold = sum(list)*X/100
@@ -169,22 +175,23 @@ def NGX_X(scaffolds_l, contigs_l, X, Genome_size = None):
     return(stat)
 
 def run_statistic(seq, trim_name, trim_area, output_path):
-    scaffolds_l, cleaned_scaffolds_l, contigs_l, fragments = scaffold(seq, trim_name, trim_area, output_path)
+    scaffolds_l, cleaned_scaffolds_l, contigs_l, sqs = scaffold(seq, trim_name, trim_area, output_path)
     new_scaffolds_l = copy.deepcopy(scaffolds_l)
     scaffolds_l.sort(reverse=True)
     contigs_l.sort(reverse=True)
 
 
 
-    statistics = NGX_X(scaffolds_l, contigs_l, 50)
     sum_scaffold = sum(scaffolds_l)
     sum_contig = sum(contigs_l)
+    statistics = {}
+    statistics['genome size'] = sum_scaffold
+    statistics['total ungapped length'] = sum_contig
     statistics['gaps'] = (sum_scaffold - sum_contig)/sum_scaffold
-    statistics['scaffold sequence length'] = sum_scaffold
+    statistics.update(NGX_X(scaffolds_l, contigs_l, 50))
     statistics['scaffold total'] = len(scaffolds_l)
-    statistics['contig sequence length'] = sum_contig
     statistics['contig total'] = len(contigs_l)
 
 
-    return (statistics, fragments, new_scaffolds_l, cleaned_scaffolds_l)
+    return (statistics, sqs, new_scaffolds_l, cleaned_scaffolds_l)
 

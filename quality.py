@@ -2,10 +2,12 @@ import argparse
 import sys
 import os
 import time
-from libs.call_subprocess import call_samtools, call_bwa
+from libs.call_subprocess import call_samtools, call_bwa, call_subprocess
 from libs.reads import read_run
 from base import run
-from libs.preprocessing import load_fragments
+from libs.call_subprocess import call_bamtocov, call_calculate_cov
+from libs.contamination import Contamination
+from libs.alignment import get_trans_score
 
 def parser(args):
     parser = argparse.ArgumentParser(
@@ -32,17 +34,12 @@ def parser(args):
         metavar="READS",
         help="corresponding reads of given genome assembly"
     )
+
     parser.add_argument(
         "-l",
         type=str,
         metavar="LINEAGE",
         help="Specify the name of the BUSCO lineage to be used."
-    )
-    parser.add_argument(
-        "-o",
-        type=str,
-        metavar="OUTPUT_NAME",
-        help="the output path"
     )
 
     parser.add_argument(
@@ -52,11 +49,40 @@ def parser(args):
         help="the given bam file helps calculate the coverage"
     )
 
+    parser.add_argument(
+        "-p",
+        type=str,
+        metavar="PROTEIN FILE",
+        help="this file helps aligment"
+    )
+
+    parser.add_argument(
+        "-t",
+        type=str,
+        metavar="TRANSCRIPTOME FILE",
+        help="this file helps aligment"
+    )
+
+    parser.add_argument(
+        "-o",
+        type=str,
+        metavar="OUTPUT_NAME",
+        help="the output path"
+    )
+
+    parser.add_argument(
+        "-anno",
+        type=str,
+        metavar="ANNOTATION_FILE",
+        help="This file can help find annotation mistakes"
+    )
+
+
     return (parser.parse_args())
 
 
 # requirements:
-#   install samtools, bamCoverage, entrez direct, prefetch, fasterq-dump
+#   install samtools, bamtocov, entrez direct, prefetch, fasterq-dump, makeblastdb, kalign,
 def main(args):
     global auto_l
     args = parser(args)
@@ -65,25 +91,46 @@ def main(args):
     reference = args.ref
     lineage = args.l
     bam = args.b
+    protein = args.p
+    trans = args.t
     output_path = args.o
     if not output_path:
         output_path = './results/' + time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
         if not os.path.exists(output_path):
             os.makedirs(output_path)
-    # fragment = call_minimap2(assembly, reference, output_path, "fragments")
-    #output_name = 'fragment'
+
+    assembly_name = assembly.split('/')[-1]
 
     accession = ('_').join(str(assembly).split('/')[-1].split('_')[:2])
     #inputdir = os.path.abspath(os.path.dirname(os.path.abspath(assembly)) + os.path.sep + '.')
+
+
     if reads == None:
         readsacc = read_run(accession, output_path)
-        reads = output_path + '/' + readsacc[0]
+        if readsacc == None:
+            reads = []
+        else:
+            reads = output_path + '/reads/' + readsacc[0] + '.fastq'
     if bam == None:
-        call_bwa(assembly, reads, output_path, accession)
-        bam = call_samtools(output_path + '/' + accession + '.sam', output_path, accession)
+        if len(reads) != 0:
+            call_bwa(assembly, reads, output_path, accession)
+            bam = call_samtools(output_path + '/' + accession + '.sam', output_path, accession)
+        else:
+            bam = None
+    #print(output_path)
+    fragments = call_subprocess(["grep '>'", assembly], out = True)
+    fragments = [x[1:].split('.')[0] + '.' + x[1:].split('.')[1][0] for x in fragments]
+    coverage_dir = call_bamtocov(bam, output_path)
+    coverage = [call_calculate_cov(x, coverage_dir) for x in fragments]
+    #print(coverage)
+    run(assembly_name, output_path, assembly, lineage, bam, protein, trans, None)
 
-    run(output_path, assembly, lineage, bam)
 
 if __name__ == '__main__':
     results = main(sys.argv[1:])
     exit(results)
+    #time_start = time.time()
+
+    #run_aligment("../Downloads/GCF_000001735.4_TAIR10.1_protein.faa", './seq_X', "./kalign")
+    #time_end = time.time()
+    #print('time:', time_end - time_start)

@@ -1,3 +1,4 @@
+import os
 from libs.call_subprocess import call_subprocess
 
 def search_Biosample(accession):
@@ -18,15 +19,21 @@ def read_run(accession, outputdir):
     Biosample = search_Biosample(accession)
 
     readsacc = search_readsacc(Biosample)
-    print('Done! We find the corresponding reads.', readsacc[1:])
+    if len(readsacc) == 0:
+        print('None reads are found!')
+        return None
+    else:
+        print('Done! We find the corresponding reads.', readsacc)
+        print('Start to download reads.')
+        #for acc in readsacc[-1]:
+        if not os.path.exists(outputdir + '/reads'):
+            os.makedirs(outputdir + '/reads')
+        call_subprocess(['prefetch', "--max-size 10G", readsacc[0]])
+        call_subprocess(['fasterq-dump --concatenate-reads', readsacc[0], '-O', outputdir + '/reads'])
 
-    print('Start to download reads.')
-    for acc in readsacc[1:]:
-        call_subprocess(['prefetch', "--max-size 100G", acc])
-        call_subprocess(['fasterq-dump --concatenate-reads', acc, '-O', outputdir])
-        read = open(outputdir + '/' + acc + '.fastq', 'r')
-        call_subprocess(["echo", read.readlines(), '>>', outputdir + '/reads.fastq'])
-        read.close()
+            #read = open(outputdir + '/reads/' + acc + '.fastq', 'r')
+            #call_subprocess(["echo", read.readlines(), '>>', outputdir + '/reads.fastq'])
+            #read.close()
 
-    return(readsacc)
+        return(readsacc)
 

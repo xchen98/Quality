@@ -8,25 +8,55 @@ class Contamination:
 
 
     def contamination_score(self, scaffold_l, cleaned_scaffold_l):
+        #print(scaffold_l, "????", cleaned_scaffold_l)
         sub = list(map(lambda x: x[0] - x[1], zip(scaffold_l, cleaned_scaffold_l)))
-        #因为busco的completeness是越大越好
         sum_l = sum(scaffold_l)
-        self.score = [round(1-x/sum_l, 2) for x in sub]
+        self.score = [round((1-x/sum_l)*100, 2) for x in sub]
 
         return
 
     def Pipline(self, type, query, database):
         global blastn, command
-
-        if type == "rrna" or "common_cont":
+        #if type == "common_cont":
+        #    command = ['blastn', '-query', query, '-db', database, '-task megablast',
+        #               "-template_length 18 -template_type coding -window_size 120",
+        #               "-word_size 28 -xdrop_gap 20 -no_greedy -best_hit_overhang 0.1",
+        #               "-best_hit_score_edge 0.1 -dust yes -evalue 1e-5 -perc_identity 95",
+        #               '-outfmt "7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore"',
+        #               "| awk '$4>=100'"]
+        if type == "mito":
             command = ['blastn', '-query', query, '-db', database, '-task megablast',
-                       "-template_length 18 -template_type coding -window_size 120",
                        "-word_size 12 -xdrop_gap 20 -no_greedy -best_hit_overhang 0.1",
-                       "-best_hit_score_edge 0.1 -dust yes -evalue 1e-5 -perc_identity 95",
-                       "-gapextend 2 -gapopen 4 -penalty -4",
+                       "-dust yes -evalue 1e-5 -perc_identity 98.6",
+                       "-gapextend 2 -gapopen 4 -penalty -2 -reward 1 -num_threads 8",
+                       '-outfmt "7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore"',
+                       "| awk '$4>=150'"]
+        if type == "common_cont" or "rrna":
+            command = ['blastn', '-query', query, '-db', database, '-task megablast',
+                       "-word_size 12 -xdrop_gap 20 -no_greedy -best_hit_overhang 0.1",
+                       "-dust yes -evalue 1e-5 -perc_identity 95",
+                       "-gapextend 2 -gapopen 4 -penalty -2 -reward 1 -num_threads 8",
                        '-outfmt "7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore"',
                        "| awk '$4>=100'"]
-        blastn = call_subprocess(command, out=True, contam=True, mode=type)
+        if type == "yeast":
+            command = ['blastn', '-query', query, '-db', database, '-task megablast',
+                       "-word_size 12 -xdrop_gap 20 -no_greedy -best_hit_overhang 0.1",
+                       "-dust yes -evalue 1e-5 -perc_identity 95",
+                       "-gapextend 2 -gapopen 4 -penalty -2 -reward 1 -num_threads 8",
+                       '-outfmt "7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore"',
+                       '-entrez_query Saccharomyces cerevisiae [ORGN]',
+                       "| awk '$4>=100'"]
+
+        if type == "Ecoli":
+            command = ['blastn', '-query', query, '-db', database, '-task megablast',
+                       "-word_size 12 -xdrop_gap 20 -no_greedy -best_hit_overhang 0.1",
+                       "-dust yes -evalue 1e-5 -perc_identity 95",
+                       "-gapextend 2 -gapopen 4 -penalty -2 -reward 1 -num_threads 8",
+                       '-outfmt "7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore"',
+                       '-entrez_query Escherichia coli [ORGN]',
+                       "| awk '$4>=100'"]
+
+        blastn = call_subprocess(command, out=True, contam=True)
         return blastn
 
     def merge_area(self, area_1, area_2):
@@ -131,10 +161,10 @@ class Contamination:
     def run(self, fragments_name):
         common_cont = self.Pipline("common_cont", self.query, self.database + '/contam_in_euks/contam_in_euks')
 
+
         all_contamination = [[], []]
 
         if len(common_cont[0]) != 0:
             all_contamination = self.merge_contamination(all_contamination, common_cont, fragments_name)
 
         return all_contamination
-
