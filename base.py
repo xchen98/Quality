@@ -1,5 +1,4 @@
 import os
-import numpy as np
 import pandas as pd
 
 from libs.BUSCO.src.busco.run_BUSCO import run_busco
@@ -46,14 +45,7 @@ def make_table(assembly_name, statistics, output_path, fragments, completeness, 
     table_string = table.to_string()
     score_table.write(table_string)
 
-    #table.to_csv(output_path + '/score.csv')
-    #column_name = ('\t').join(['fragments', 'completeness score', 'contamination score', 'coverage score', 'transcriptome score', 'proteome score', 'multi-assembly score', 'overall score'])
-    #score_table.write(column_name + '\n')
 
-    #for i in range(len(fragments)):
-    #    line = ('\t').join([str(fragments[i]), str(round(np.float64(completeness[fragments[i]]), 2)), str(contamination[i]), str(coverage[i]), str(0), str(proteome[i])])
-    #    score_table.write(line + '\n')
-    #score_table.close()
     return
 
 def completeness(complete, fragments):
@@ -112,17 +104,6 @@ def run(assembly_name, output_path, assembly, lineage, bam, protein, transcripto
 
 
 
-    #table['fragments'] = fragments
-    #table['completeness'] = complete['score'].tolist()
-    #table['contamination'] = list(Cont.score)
-    #table['coverage'] = coverage
-    #table['protein score'] = protein_score.round(2)['score'].tolist()
-    #table['transcriptome score'] = transcriptome_score.round(2)['score'].tolist()
-    #table.fillna(0)
-    #print(table)
-    #table.to_csv(output_path + '/score.csv')
-
-    #print(table)
     make_table(assembly_name, statistics, output_path, fragments, complete, Cont.score, coverage, transcriptome_score, protein_score)
 
 
