@@ -2,9 +2,11 @@ import os
 import numpy as np
 import pandas as pd
 
-from Bio.Seq import Seq
-from libs.call_subprocess import call_makeblastdb, call_subprocess, call_kalign, call_hmmbuild, call_hmmsearch, call_diamond
+from libs.call_subprocess import call_makeblastdb, call_subprocess, call_diamond
 
+
+def check_alignment(output_dir, anno_dir, mode):
+    call_subprocess(['Rscript ./Granges.R', '-f', anno_dir, '-s', output_dir, '-t', mode, ' > ', output_dir + '/log.txt'])
 
 def alignment_transcriptome(sequences, transcriptome, output_dir):
     transcriptome_dir = call_makeblastdb(transcriptome, 'nucl', output_dir)
@@ -15,23 +17,17 @@ def alignment_transcriptome(sequences, transcriptome, output_dir):
     return(out)
 
 
-def get_protein_score(seq, protein, fragments, output_dir):
+def get_protein_score(seq, protein, fragments, output_dir, annotation = None):
     call_diamond(seq, protein, output_dir)
     matching = pd.read_csv(output_dir + '/matches.m8', sep="\t")
     matching.columns = ['qseqid', 'sseqid', 'pident', 'length', 'mismatch', 'gapopen', 'qstart', 'qend', 'sstart',
                         'send', 'evalue', 'bitscore']
+    matching.to_csv(output_dir + '/prot.tsv', sep = '\t')
 
-    #score = []
-    #for fragment in fragments:
-    #    sorted_matching = matching[matching['qseqid'] == fragment].sort_values(by=['bitscore', 'length', 'pident'],
-    #                                                                           ascending=False)
-    #    score_f = pd.DataFrame(sorted_matching['bitscore'] / sorted_matching['length'] * sorted_matching['pident'],
-    #                           columns=['score'])
-    #    score.append([sorted_matching.loc[
-    #                      score_f.sort_values(by=['score'], ascending=False).iloc[0:1].index.tolist()[0]]['sseqid'],
-    #                  score_f.sort_values(by=['score'], ascending=False).max().max()])
-    #score = pd.DataFrame(score, columns=['protein_sseqid', 'score'])
-    #score.index = fragments
+    if annotation:
+        check_alignment(output_dir, annotation, 'prot')
+        prot_out = pd.read_table(output_dir + '/prot_out.tsv', sep = '\t').x.tolist()
+        matching['bitscore'] = matching['bitscore'] * prot_out
 
     score = pd.DataFrame()
     for fragment in fragments:
@@ -42,25 +38,22 @@ def get_protein_score(seq, protein, fragments, output_dir):
         score = pd.concat([score, score_f])
     score.columns = ['fragments', 'score']
     score.index = fragments
+
+    os.remove(output_dir + '/prot.tsv')
+    os.remove(output_dir + '/prot_out.tsv')
+
     return score
 
-def get_trans_score(seq, transcriptome, output_dir):
-    matching = alignment_transcriptome(seq, transcriptome, output_dir)
+def get_trans_score(seq, transcriptome, fragments, output_dir, annotation = None):
+    alignment_transcriptome(seq, transcriptome, output_dir).to_csv(output_dir + '/trans.tsv', sep = '\t')
 
-    #score = []
-    fragments = list(matching['queryacc.ver'].unique())
+    matching = pd.read_table(output_dir + '/trans.tsv', sep = '\t')
 
-    #for fragment in fragments:
-    #    sorted_matching = matching[matching['queryacc.ver'] == fragment].sort_values(
-    #        by=['identity', 'bitscore', 'alignment length'], ascending=False).sort_values(by=['evalue', 'mismatches'])
-    #    score_f = pd.DataFrame(
-    #        sorted_matching['bitscore'].astype(float) / sorted_matching['alignment length'].astype(float) *
-    #        sorted_matching['identity'].astype(float), columns=['score'])
-    #    s_index = score_f.sort_values(by=['score'], ascending=False).iloc[0:1].index.tolist()[0]
-    #    score.append([sorted_matching.loc[s_index]['subjectacc.ver'],
-    #                  score_f.sort_values(by=['score'], ascending=False).max().max()])
-    #score = pd.DataFrame(score, columns=['trans_sseqid', 'score'])
-    #score.index = fragments
+    if annotation:
+        check_alignment(output_dir, annotation, 'trans')
+        trans_out = pd.read_table(output_dir + '/trans_out.tsv', sep = '\t').x.tolist()
+        matching['bitscore'] = matching['bitscore'] * trans_out
+
 
     score = pd.DataFrame()
     for fragment in fragments:
@@ -72,46 +65,8 @@ def get_trans_score(seq, transcriptome, output_dir):
     score.columns = ['fragments', 'score']
     score.index = fragments
 
-    return (score)
+    os.remove(output_dir + '/trans.tsv')
+    os.remove(output_dir + '/trans_out.tsv')
 
-def split_msf(msf_file, output_dir):
-    msf_file = open(msf_file, 'r')
-    global msf
-    out_name = ''
-    names = []
-    for line in msf_file.readlines():
-        line = line.strip()
-        if '>' in line:
-            name = line[1:].split(':')
-            if out_name != '' and out_name not in name:
-                msf.close()
-            if not os.path.exists(output_dir + '/msf'):
-                os.makedirs(output_dir + '/msf')
-            out_name = name[0] + '.msf'
-            names.append(name[0])
-            msf = open(output_dir + '/msf/' + out_name, 'w')
-            msf.write(line + '\n')
-        else:
-            msf.write(line + '\n')
-
-    msf.close()
-
-    return(names)
-
-
-def run_aligment(protein, predicted_protein, output_dir):
-    call_kalign(predicted_protein, output_dir)
-    names = split_msf('./kalign/out.msf',output_dir)
-
-
-    if not os.path.exists(output_dir + '/hmm'):
-        os.makedirs(output_dir + '/hmm')
-    if not os.path.exists(output_dir + '/out'):
-        os.makedirs(output_dir + '/out')
-    call_hmmbuild(names, output_dir)
-    call_hmmsearch(protein, names, output_dir)
-
-
-
-
+    return score
 

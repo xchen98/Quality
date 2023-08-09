@@ -2,17 +2,14 @@ import argparse
 import sys
 import os
 import time
-from libs.call_subprocess import call_samtools, call_bwa, call_subprocess
+from libs.call_subprocess import call_samtools, call_bwa
 from libs.reads import read_run
 from base import run
-from libs.call_subprocess import call_bamtocov, call_calculate_cov
-from libs.contamination import Contamination
-from libs.alignment import get_trans_score
 
 def parser(args):
     parser = argparse.ArgumentParser(
         description=" ",
-        usage="quality -a [GENOME ASSEMBLY] -ref [REFERENCE] -o [OUTPUT_NAME] [OTHER OPTIONS]",
+        usage="quality -a [GENOME ASSEMBLY] -l [LINEAGE] -o [OUTPUT_NAME] [OTHER OPTIONS]",
         add_help=False,
     )
 
@@ -20,14 +17,14 @@ def parser(args):
         "-a",
         type=str,
         metavar="GENOME ASSEMBLY",
-        help="genome assembly"
+        help="Genome assembly"
     )
 
     parser.add_argument(
         "-reads",
         type=str,
         metavar="READS",
-        help="corresponding reads of given genome assembly"
+        help="Corresponding reads of given genome assembly"
     )
 
     parser.add_argument(
@@ -41,28 +38,28 @@ def parser(args):
         "-b",
         type=str,
         metavar="BAM FILE",
-        help="the given bam file helps calculate the coverage"
+        help="The given bam file helps calculate the coverage and accelerate the evaluation"
     )
 
     parser.add_argument(
         "-p",
         type=str,
         metavar="PROTEIN FILE",
-        help="this file helps aligment"
+        help="This file helps aligment"
     )
 
     parser.add_argument(
         "-t",
         type=str,
         metavar="TRANSCRIPTOME FILE",
-        help="this file helps aligment"
+        help="This file helps aligment"
     )
 
     parser.add_argument(
         "-o",
         type=str,
         metavar="OUTPUT_NAME",
-        help="the output path"
+        help="The output path"
     )
 
     parser.add_argument(
@@ -77,17 +74,17 @@ def parser(args):
 
 
 # requirements:
-#   install samtools, bamtocov, entrez direct, prefetch, fasterq-dump, makeblastdb, kalign,
+#   install samtools, bamtocov, entrez direct, prefetch, fasterq-dump, makeblastdb, diamond, Rscript
 def main(args):
     global auto_l
     args = parser(args)
     assembly = args.a
     reads = args.reads
-    reference = args.ref
     lineage = args.l
     bam = args.b
     protein = args.p
     trans = args.t
+    anno = args.anno
     output_path = args.o
     if not output_path:
         output_path = './results/' + time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
@@ -97,23 +94,21 @@ def main(args):
     assembly_name = assembly.split('/')[-1]
 
     accession = ('_').join(str(assembly).split('/')[-1].split('_')[:2])
-    #inputdir = os.path.abspath(os.path.dirname(os.path.abspath(assembly)) + os.path.sep + '.')
 
-
-    if reads == None:
+    read = []
+    if reads == 'auto':
         readsacc = read_run(accession, output_path)
-        if readsacc == None:
-            reads = []
-        else:
-            reads = output_path + '/reads/' + readsacc[0] + '.fastq'
+        if readsacc != None:
+            read = output_path + '/reads/' + readsacc[0] + '.fastq'
+
     if bam == None:
-        if len(reads) != 0:
-            call_bwa(assembly, reads, output_path, accession)
+        if len(read) != 0:
+            call_bwa(assembly, read, output_path, accession)
             bam = call_samtools(output_path + '/' + accession + '.sam', output_path, accession)
         else:
             bam = None
 
-    run(assembly_name, output_path, assembly, lineage, bam, protein, trans)
+    run(assembly_name, output_path, assembly, lineage, bam, protein, trans, anno)
 
 
 if __name__ == '__main__':

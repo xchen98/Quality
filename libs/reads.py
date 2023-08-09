@@ -25,15 +25,12 @@ def read_run(accession, outputdir):
     else:
         print('Done! We find the corresponding reads.', readsacc)
         print('Start to download reads.')
-        #for acc in readsacc[-1]:
         if not os.path.exists(outputdir + '/reads'):
             os.makedirs(outputdir + '/reads')
         call_subprocess(['prefetch', "--max-size 10G", readsacc[0]])
         call_subprocess(['fasterq-dump --concatenate-reads', readsacc[0], '-O', outputdir + '/reads'])
 
-            #read = open(outputdir + '/reads/' + acc + '.fastq', 'r')
-            #call_subprocess(["echo", read.readlines(), '>>', outputdir + '/reads.fastq'])
-            #read.close()
+
 
         return(readsacc)
 

@@ -1,7 +1,6 @@
 import subprocess
 import os
 import pandas as pd
-import numpy as np
 
 def call_subprocess(command, out=False, string=None, contam=False, align = False):
     if out:
@@ -20,7 +19,7 @@ def call_subprocess(command, out=False, string=None, contam=False, align = False
             return align
         elif contam == True:
             std = str(std)[1:].split('# BLAST processed')[0].replace(' ', '').split("'")[1].split('#Query:')[1:]
-            name = [x.split('\\n')[0] for x in std if "0hitsfound" not in x]
+            name = [x.split('\\n')[0].split('.')[0] + '.' + x.split('\\n')[0].split('.')[1][0] for x in std if "0hitsfound" not in x]
             hits = [x.split('BLASTN')[0].split('\\n')[4:-1] for x in std if "0hitsfound" not in x]
             strong_hits = [[list(map(int, y.split('\\t')[8:10])) for y in x] for x in hits]
             for x in strong_hits:
@@ -31,6 +30,7 @@ def call_subprocess(command, out=False, string=None, contam=False, align = False
             if len(str(std).split('\\n')) > 1:
                 std = str(std)[1:].replace(' ', '').split("'")[1].split('\\n')[:-1]
             else:
+                std = str(std)[1:].replace(' ', '').split("'")[1]
                 std = str(std)[1:].replace(' ', '').split("'")[1]
 
         return (std)
@@ -83,16 +83,3 @@ def call_diamond(seq, protein, output_dir):
     command = ['diamond blastx -d', output_dir + '/nr', '-q', seq, '-f 6 -o', output_dir + '/matches.m8', '>', output_dir + '/log.txt']
     call_subprocess(command)
 
-def call_kalign(query, output_dir):
-    command = ['kalign', '-i', query, '-n 8', '-out', output_dir + '/out.msf']
-    call_subprocess(command)
-
-def call_hmmbuild(msf_names, output_dir):
-    for msf in msf_names:
-        command = ['hmmbuild', output_dir + '/hmm/' + msf + '.hmm', output_dir + '/msf/' + msf + '.msf', '> trash']
-        call_subprocess(command)
-
-def call_hmmsearch(protein, hmm_files, output_dir):
-    for hmm in hmm_files:
-        command = ['hmmsearch --tblout', output_dir + '/out/' + hmm + '.out', output_dir + '/hmm/' + hmm + '.hmm', protein, '> trash']
-        call_subprocess(command)

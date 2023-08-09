@@ -175,6 +175,7 @@ class TranscriptomeAnalysisProkaryotes(
                 name=record.id,
                 description=descriptions[i + 1],
             )
+
         return translated_seqs
 
     @staticmethod

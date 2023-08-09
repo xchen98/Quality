@@ -12,8 +12,9 @@ def read_score_table(path):
     score_table = [table.loc[x,].values[0].split()[1:-1] for x in table.index]
     score_table = pd.DataFrame(score_table)
     col = score.loc[11,].values[0].split()
-    col[-3] = "transcriptome"
-    col[-2] = "proteome"
+
+    col[col.index('transcriptome_score')] = "transcriptome"
+    col[col.index('protein_score')] = "proteome"
     score_table.columns = col[:-1]
     score_table['assembly'] = [assembly_name] * len(score_table['fragments'])
     return(score_table)

@@ -8,7 +8,6 @@ class Contamination:
 
 
     def contamination_score(self, scaffold_l, cleaned_scaffold_l):
-        #print(scaffold_l, "????", cleaned_scaffold_l)
         sub = list(map(lambda x: x[0] - x[1], zip(scaffold_l, cleaned_scaffold_l)))
         sum_l = sum(scaffold_l)
         self.score = [round((1-x/sum_l)*100, 2) for x in sub]
@@ -17,13 +16,7 @@ class Contamination:
 
     def Pipline(self, type, query, database):
         global blastn, command
-        #if type == "common_cont":
-        #    command = ['blastn', '-query', query, '-db', database, '-task megablast',
-        #               "-template_length 18 -template_type coding -window_size 120",
-        #               "-word_size 28 -xdrop_gap 20 -no_greedy -best_hit_overhang 0.1",
-        #               "-best_hit_score_edge 0.1 -dust yes -evalue 1e-5 -perc_identity 95",
-        #               '-outfmt "7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore"',
-        #               "| awk '$4>=100'"]
+
         if type == "mito":
             command = ['blastn', '-query', query, '-db', database, '-task megablast',
                        "-word_size 12 -xdrop_gap 20 -no_greedy -best_hit_overhang 0.1",
@@ -31,20 +24,13 @@ class Contamination:
                        "-gapextend 2 -gapopen 4 -penalty -2 -reward 1 -num_threads 8",
                        '-outfmt "7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore"',
                        "| awk '$4>=150'"]
-        if type == "common_cont" or "rrna":
-            command = ['blastn', '-query', query, '-db', database, '-task megablast',
-                       "-word_size 12 -xdrop_gap 20 -no_greedy -best_hit_overhang 0.1",
-                       "-dust yes -evalue 1e-5 -perc_identity 95",
-                       "-gapextend 2 -gapopen 4 -penalty -2 -reward 1 -num_threads 8",
-                       '-outfmt "7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore"',
-                       "| awk '$4>=100'"]
+
         if type == "yeast":
             command = ['blastn', '-query', query, '-db', database, '-task megablast',
                        "-word_size 12 -xdrop_gap 20 -no_greedy -best_hit_overhang 0.1",
                        "-dust yes -evalue 1e-5 -perc_identity 95",
                        "-gapextend 2 -gapopen 4 -penalty -2 -reward 1 -num_threads 8",
                        '-outfmt "7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore"',
-                       '-entrez_query Saccharomyces cerevisiae [ORGN]',
                        "| awk '$4>=100'"]
 
         if type == "Ecoli":
@@ -53,7 +39,6 @@ class Contamination:
                        "-dust yes -evalue 1e-5 -perc_identity 95",
                        "-gapextend 2 -gapopen 4 -penalty -2 -reward 1 -num_threads 8",
                        '-outfmt "7 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore"',
-                       '-entrez_query Escherichia coli [ORGN]',
                        "| awk '$4>=100'"]
 
         blastn = call_subprocess(command, out=True, contam=True)
@@ -133,6 +118,7 @@ class Contamination:
                                 all_cont_area.insert(ind, (self.remove_duplicated(low[1][i])))
                                 low_j = low_j + 1
                         elif i >= low_l and low_j <= low_l:
+                            print( i, low_l,  low_j, low)
                             if len(self.remove_duplicated(low[1][low_j])) != 0:
                                 ind = fragments_name.index(low[0][low_j])
                                 all_cont_name.insert(ind, (low[0][low_j]))
@@ -140,7 +126,6 @@ class Contamination:
                                 low_j = low_j + 1
 
                         if len(self.remove_duplicated(large[1][i])) != 0:
-                            print(fragments_name, "???", large[0])
                             ind = fragments_name.index(large[0][i])
                             all_cont_name.insert(ind, (large[0][i]))
                             all_cont_area.insert(ind, (self.remove_duplicated(large[1][i])))
@@ -159,12 +144,17 @@ class Contamination:
         return (all_cont)
 
     def run(self, fragments_name):
-        common_cont = self.Pipline("common_cont", self.query, self.database + '/contam_in_euks/contam_in_euks')
-
+        mito = self.Pipline("mito", self.query, self.database + '/mito/mito')
+        Ecoli = self.Pipline("Ecoli", self.query, self.database + '/Ecoli/Ecoli')
+        yeast = self.Pipline("yeast", self.query, self.database + '/yeast/yeast')
 
         all_contamination = [[], []]
 
-        if len(common_cont[0]) != 0:
-            all_contamination = self.merge_contamination(all_contamination, common_cont, fragments_name)
+        if len(mito[0]) != 0:
+            all_contamination = self.merge_contamination(all_contamination, mito, fragments_name)
+        if len(Ecoli[0]) != 0:
+            all_contamination = self.merge_contamination(all_contamination, Ecoli, fragments_name)
+        if len(yeast[0]) != 0:
+            all_contamination = self.merge_contamination(all_contamination, yeast, fragments_name)
 
         return all_contamination

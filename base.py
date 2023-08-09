@@ -5,7 +5,7 @@ from libs.BUSCO.src.busco.run_BUSCO import run_busco
 from libs.contamination import Contamination
 from libs.basic_statistics import run_statistic
 from libs.call_subprocess import call_bamtocov, call_calculate_cov, call_subprocess
-from libs.alignment import get_protein_score, get_trans_score
+from libs.alignment import get_protein_score, get_trans_score, check_alignment
 
 
 
@@ -28,6 +28,7 @@ def make_table(assembly_name, statistics, output_path, fragments, completeness, 
 
     if coverage != None:
         table['coverage'] = coverage
+        table['coverage'] = table['coverage'].astype(float)
 
         max_sum = max(table['completeness']) + max(table['contamination']) + max(table['transcriptome_score']) \
                   + max(table['protein_score']) + max(table['coverage'])
@@ -45,7 +46,6 @@ def make_table(assembly_name, statistics, output_path, fragments, completeness, 
     table_string = table.to_string()
     score_table.write(table_string)
 
-
     return
 
 def completeness(complete, fragments):
@@ -58,8 +58,8 @@ def completeness(complete, fragments):
     complete['length'] = abs((complete['end']) - (complete['start']))
 
     for i in set(complete.fragments):
-        complete.loc[complete.fragments == i, 'final_score'] = complete.loc[complete.fragments == i, 'score'] / complete.loc[
-            complete.fragments == i, 'length'] * complete.loc[complete.fragments == i, 'length'].describe().mean()
+        complete.loc[complete.fragments == i, 'final_score'] = (complete.loc[complete.fragments == i, 'score'] / complete.loc[
+            complete.fragments == i, 'length']) * complete.loc[complete.fragments == i, 'length'].describe().mean()
     out = pd.DataFrame(fragments, columns=['fragments'])
     out['score'] = [0] * len(fragments)
     completeness = pd.DataFrame(complete['fragments'].unique(), columns=['fragments'])
@@ -75,7 +75,7 @@ def completeness(complete, fragments):
 
     return(out)
 
-def run(assembly_name, output_path, assembly, lineage, bam, protein, transcriptome):
+def run(assembly_name, output_path, assembly, lineage, bam, protein, transcriptome, annotation = None):
 
     auto_l = True
     if lineage:
@@ -93,8 +93,10 @@ def run(assembly_name, output_path, assembly, lineage, bam, protein, transcripto
 
     Cont.contamination_score(new_scaffolds_l, cleaned_scaffolds_l)
 
-    protein_score = get_protein_score(assembly, protein, fragments, output_path)
-    transcriptome_score = get_trans_score(assembly, transcriptome, output_path)
+    protein_score = get_protein_score(assembly, protein, fragments, output_path, annotation)
+    transcriptome_score = get_trans_score(assembly, transcriptome, fragments, output_path, annotation)
+
+
 
     if bam == None:
         coverage = None
@@ -103,7 +105,7 @@ def run(assembly_name, output_path, assembly, lineage, bam, protein, transcripto
         coverage = [call_calculate_cov(x, coverage_dir) for x in fragments]
 
 
-
     make_table(assembly_name, statistics, output_path, fragments, complete, Cont.score, coverage, transcriptome_score, protein_score)
+
 
 
